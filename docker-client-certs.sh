@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 
 # Location where the Root CA ket/cert is located, as we need to sign our client certificates with the root CA
 DOCKER_HOST_SSL_HOME="/etc/docker/ssl"

@@ -1,0 +1,82 @@
+---
+
+- name: Creates directory
+  file:
+    path: /etc/docker/ssl/client
+    state: directory
+
+- name: create CA key
+  openssl_privatekey:
+    path: /etc/docker/ssl/ca-key.pem
+
+#- name: ca hax
+#  shell: openssl genrsa -out /etc/docker/ssl/ca-key.pem 4096
+
+- name: create the CA CSR
+  openssl_csr:
+    path: /etc/docker/ssl/ca.csr
+    privatekey_path: /etc/docker/ssl/ca-key.pem
+    common_name: "my-ca"
+    organization_name: "myorg"
+    basic_constraints: CA:TRUE
+
+- name: sign the CA CSR
+  openssl_certificate:
+    path: /etc/docker/ssl/ca.pem
+    csr_path: /etc/docker/ssl/ca.csr
+    privatekey_path: /etc/docker/ssl/ca-key.pem
+    provider: selfsigned
+
+#- name: create root ca hax
+#  shell: openssl req -new -x509 -days 365 -key "/etc/docker/ssl/ca-key.pem" -subj "/CN=tes123/O=MyOrganisation/C=UK" -out "/etc/docker/ssl/ca.pem"
+#
+
+# client
+
+- name: create client private key
+  openssl_privatekey:
+    path: /etc/docker/ssl/client/client-key.pem
+
+- name: create the CSR for the client server
+  openssl_csr:
+    path: /etc/docker/ssl/client/client.csr
+    privatekey_path: /etc/docker/ssl/client/client-key.pem
+    common_name: larry
+    subject_alt_name: 'IP:127.0.0.1'
+    extended_key_usage:
+      - clientAuth
+
+- name: sign the CSR for the LDAP server
+  openssl_certificate:
+    path: /etc/docker/ssl/client/client.pem
+    csr_path: /etc/docker/ssl/client/client.csr
+    provider: ownca
+    ownca_path: /etc/docker/ssl/ca.pem
+    ownca_privatekey_path: /etc/docker/ssl/ca-key.pem
+
+
+
+# Sign the server
+
+- name: create server private key
+  openssl_privatekey:
+    path: /etc/docker/ssl/server-key.pem
+
+- name: create the CSR for the client server
+  openssl_csr:
+    path: /etc/docker/ssl/server.csr
+    privatekey_path: /etc/docker/ssl/server-key.pem
+    common_name: localhost
+    subject_alt_name: 'DNS:localhost,IP:127.0.0.1,IP:172.17.0.1'
+    extended_key_usage:
+      - serverAuth
+
+- name: sign the CSR for the server
+  openssl_certificate:
+    path: /etc/docker/ssl/server-cert.pem
+    csr_path: /etc/docker/ssl/server.csr
+    provider: ownca
+    ownca_path: /etc/docker/ssl/ca.pem
+    ownca_privatekey_path: /etc/docker/ssl/ca-key.pem
+
+

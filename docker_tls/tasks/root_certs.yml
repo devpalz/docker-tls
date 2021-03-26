@@ -1,0 +1,57 @@
+---
+- name: Creates directory
+  file:
+    path: /home/chris/please/root
+    state: directory
+
+
+- name: create CA key
+  openssl_privatekey:
+    path: /home/chris/please/root/ca-key.pem
+
+- name: create the CA CSR
+  openssl_csr:
+    path: /home/chris/please/root/ca.csr
+    privatekey_path: /home/chris/please/root/ca-key.pem
+    common_name: "my-ca"
+
+- name: sign the CA CSR
+  openssl_certificate:
+    path: /home/chris/please/root/ca.pem
+    csr_path: /home/chris/please/root/ca.csr
+    privatekey_path: /home/chris/please/root/ca-key.pem
+    provider: selfsigned
+
+
+# Sign the server
+
+
+- name: create server private key
+  openssl_privatekey:
+    path: /home/chris/please/server-key.pem
+
+- name: create the CSR for the client server
+  openssl_csr:
+    path: /home/chris/please/server.csr
+    privatekey_path: /home/chris/please/server-key.pem
+    common_name: larry
+    subject_alt_name: 'IP:127.0.0.1'
+    extended_key_usage:
+      - serverAuth
+
+- name: sign test
+  shell: sudo openssl x509 -req -days 265 -in -in "${DOCKER_HOST_SSL_HOME}/server.csr"
+
+#- name: sign the CSR for the server
+#  openssl_certificate:
+#    path: /home/chris/please/server.pem
+#    csr_path: /home/chris/please/server.csr
+#    provider: ownca
+#    ownca_path: /etc/docker/ssl/ca.pem
+#    ownca_privatekey_path: /etc/docker/ssl/ca-key.pem
+#
+#
+
+
+  echo "Creating the Docker Server Certificate"
+  sudo openssl x509 -req -days 365  -in "${DOCKER_HOST_SSL_HOME}/server.csr"  -CA "${DOCKER_HOST_SSL_HOME}/ca.pem"  -CAkey "${DOCKER_HOST_SSL_HOME}/ca-key.pem"  -CAcreateserial   -out "${DOCKER_HOST_SSL_HOME}/server-cert.pem"   -extfile "${DOCKER_HOST_SSL_HOME}/server-extfile.cnf"
